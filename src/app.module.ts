@@ -1,12 +1,21 @@
 import { ClassSerializerInterceptor, MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
+import { join } from 'path';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { I18nModule } from 'nestjs-i18n';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
+import { TeachersModule } from './teachers/teachers.module';
+import { ParentsModule } from './parents/parents.module';
+import { StudentsModule } from './students/students.module';
+import { CirclesModule } from './circles/circles.module';
+import { DailyRecordsModule } from './daily-records/daily-records.module';
+import { FinancialModule } from './financial/financial.module';
+import { PublicModule } from './public/public.module';
 import { LoggerMiddleware } from './utils/middlewares/logger.middleware';
 import { ApiResponseInterceptor } from './utils/interceptors/api-response.interceptor';
 import { ApiExceptionFilter } from './utils/filters/api-exception.filter';
@@ -14,8 +23,22 @@ import { dataSourceOptions } from '../db/data-source';
 
 @Module({
   imports: [
+    I18nModule.forRoot({
+      fallbackLanguage: 'en',
+      loaderOptions: {
+        path: join(__dirname, '..', 'i18n'),
+        watch: true,
+      },
+    }),
     UsersModule,
     AuthModule,
+    TeachersModule,
+    ParentsModule,
+    StudentsModule,
+    CirclesModule,
+    DailyRecordsModule,
+    FinancialModule,
+    PublicModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: process.env.NODE_ENV !== 'production' ? `.env.${process.env.NODE_ENV || 'development'}` : '.env',

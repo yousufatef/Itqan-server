@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Delete, UseGuards, Put, BadRequestException, UploadedFile, UseInterceptors, Res } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, UseGuards, Put, BadRequestException, UploadedFile, UseInterceptors, Res, Patch } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { AuthGuard } from './guards/auth.guard';
@@ -79,5 +79,19 @@ export class UsersController {
   ) {
     if (!file) throw new BadRequestException('uploads.fileRequired');
     return this.usersService.uploadProfileImage(file.filename, payload.id);
+  }
+
+  // TODO: implement
+  @Patch(':id/toggle-active')
+  toggleActive(@Param('id') id: string) {
+    console.log(`endpoint hit: PATCH /users/${id}/toggle-active`);
+    return { message: 'User active status toggled placeholder', id };
+  }
+
+  // TODO: implement
+  @Get('export')
+  export() {
+    console.log('endpoint hit: GET /users/export');
+    return { message: 'Users export placeholder' };
   }
 }

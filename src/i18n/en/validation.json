@@ -32,8 +32,6 @@
   "emailRequired": "Email is required",
   "emailLength": "Email must not exceed 255 characters",
   "invalidEmail":"Email must be an email",
-  "roleIdInt": "Role must be an integer",
-  "roleIdPositive": "Role must be a positive number",
   "refreshTokenRequired": "Refresh token is required",
   "commentMinLength": "Comment must be at least 10 characters long",
   "fileString": "Image must be a string",

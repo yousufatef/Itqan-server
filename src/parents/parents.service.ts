@@ -1,0 +1,6 @@
+import { Injectable } from '@nestjs/common';
+
+@Injectable()
+export class ParentsService {
+    // TODO: implement parent service
+}

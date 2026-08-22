@@ -4,10 +4,10 @@ import { UserType } from "./enums";
 export type User = {
     id: number;
     email: string;
-    username: string;
+    username: string | null;
     userType: UserType;
     isAccountVerified: boolean;
-    profileImage: string;
+    profileImage: string | null;
     created_at: Date;
     updated_at: Date;
 };
@@ -27,11 +27,11 @@ export type accessTokenType = {
 }
 export interface UserProfile {
     email: string;
-    username: string;
+    username: string | null;
     userType: UserType;
     id: number;
     created_at: Date;
     updated_at: Date;
     isAccountVerified: boolean;
-    profileImage: string;
+    profileImage: string | null;
 }

@@ -1,10 +1,9 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, Unique, UpdateDateColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import { Exclude } from 'class-transformer';
 import { CURRENT_TIMESTAMP } from '../../utils/constants';
 import { UserType } from '../../utils/enums';
 
 @Entity({ name: 'users' })
-@Unique(['email', 'userType'])
 export class User {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -13,7 +12,7 @@ export class User {
   email!: string;
 
   @Column({ type: 'varchar', length: 150, nullable: true })
-  username!: string;
+  username!: string | null;
 
   @Column()
   @Exclude()
@@ -22,11 +21,11 @@ export class User {
   @Column({ type: 'enum', enum: UserType, default: UserType.NORMAL_USER })
   userType!: UserType;
 
-  @Column({ default: false })
+  @Column({ type: 'boolean', default: false })
   isAccountVerified!: boolean;
 
-  @Column({ default: null, nullable: true })
-  profileImage!: string;
+  @Column({ type: 'varchar', nullable: true })
+  profileImage!: string | null;
 
   @CreateDateColumn({ type: 'timestamp', default: () => CURRENT_TIMESTAMP })
   created_at!: Date;
