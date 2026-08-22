@@ -1,0 +1,100 @@
+{
+  "common": {
+    "success": "Operation completed successfully",
+    "retrieved": "Resource retrieved successfully",
+    "created": "Resource created successfully",
+    "updated": "Resource updated successfully",
+    "deleted": "Resource deleted successfully",
+    "badRequest": "Bad request",
+    "validationFailed": "Validation failed",
+    "notFound": "Resource not found",
+    "alreadyExists": "Resource already exists",
+    "unauthorized": "Unauthorized",
+    "forbidden": "Forbidden",
+    "internalServerError": "Internal server error"
+  },
+  "blogs": {
+    "created": "Blog created successfully",
+    "updated": "Blog updated successfully",
+    "deleted": "Blog deleted successfully",
+    "retrieved": "Blog retrieved successfully",
+    "listRetrieved": "Blogs retrieved successfully",
+    "notFound": "Blog not found"
+  },
+  "categories": {
+    "created": "Category created successfully",
+    "updated": "Category updated successfully",
+    "deleted": "Category deleted successfully",
+    "retrieved": "Category retrieved successfully",
+    "listRetrieved": "Categories retrieved successfully",
+    "notFound": "Category not found",
+    "alreadyExists": "Category already exists"
+  },
+  "roles": {
+    "created": "Role created successfully",
+    "updated": "Role updated successfully",
+    "deleted": "Role deleted successfully",
+    "retrieved": "Role retrieved successfully",
+    "listRetrieved": "Roles retrieved successfully",
+    "notFound": "Role not found",
+    "alreadyExists": "Role already exists"
+  },
+  "permissions": {
+    "created": "Permission created successfully",
+    "updated": "Permission updated successfully",
+    "deleted": "Permission deleted successfully",
+    "retrieved": "Permission retrieved successfully",
+    "listRetrieved": "Permissions retrieved successfully",
+    "notFound": "Permission not found",
+    "alreadyExists": "Permission already exists"
+  },
+  "users": {
+    "registered": "User registered successfully",
+    "loginSuccess": "Login successful",
+    "refreshSuccess": "Token refreshed successfully",
+    "updated": "User updated successfully",
+    "deleted": "User deleted successfully",
+    "retrieved": "User retrieved successfully",
+    "listRetrieved": "Users retrieved successfully",
+    "profileImageUploaded": "Profile image uploaded successfully",
+    "profileImageRemoved": "Profile image removed successfully",
+    "notFound": "User not found",
+    "alreadyExists": "User already exists",
+    "invalidCredentials": "Invalid email or password",
+    "noProfileImage": "No profile image to remove"
+  },
+  "admins": {
+    "created": "Admin created successfully",
+    "updated": "Admin updated successfully",
+    "deleted": "Admin deleted successfully",
+    "retrieved": "Admin retrieved successfully",
+    "listRetrieved": "Admins retrieved successfully",
+    "notFound": "Admin not found",
+    "alreadyExists": "Admin already exists"
+  },
+  "comments": {
+    "created": "Comment created successfully",
+    "updated": "Comment updated successfully",
+    "deleted": "Comment deleted successfully",
+    "retrieved": "Comment retrieved successfully",
+    "notFound": "Comment not found",
+    "forbiddenView": "You are not allowed to view this comment",
+    "forbiddenUpdate": "You are not allowed to update this comment",
+    "forbiddenDelete": "You are not allowed to delete this comment"
+  },
+  "uploads": {
+    "uploaded": "File uploaded successfully",
+    "multipleUploaded": "Files uploaded successfully",
+    "fileRequired": "File is required",
+    "filesRequired": "Files are required"
+  },
+  "auth": {
+    "tokenExpired": "Token has expired",
+    "invalidToken": "Invalid token",
+    "noToken": "No token provided",
+    "accessDenied": "Access denied",
+    "noRoles": "Access denied, no roles defined for this route",
+    "userNoLongerExists": "User no longer exists",
+    "invalidRefreshToken": "Invalid or expired refresh token"
+  }
+}
