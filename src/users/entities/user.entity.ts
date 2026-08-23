@@ -22,7 +22,7 @@ export class User {
   userType!: UserType;
 
   @Column({ type: 'boolean', default: false })
-  isAccountVerified!: boolean;
+  isActive!: boolean;
 
   @Column({ type: 'varchar', nullable: true })
   profileImage!: string | null;

@@ -6,7 +6,7 @@ export type User = {
     email: string;
     username: string | null;
     userType: UserType;
-    isAccountVerified: boolean;
+    isActive: boolean;
     profileImage: string | null;
     created_at: Date;
     updated_at: Date;
@@ -32,6 +32,6 @@ export interface UserProfile {
     id: number;
     created_at: Date;
     updated_at: Date;
-    isAccountVerified: boolean;
+    isActive: boolean;
     profileImage: string | null;
 }
