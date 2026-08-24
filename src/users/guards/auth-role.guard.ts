@@ -4,7 +4,7 @@ import { JwtService } from "@nestjs/jwt";
 import { Request } from "express";
 import { CURRENT_USER_KEY } from "../../utils/constants";
 import { Reflector } from "@nestjs/core";
-import { UserType } from "../../utils/enums";
+import { UserRole } from "../../utils/enums";
 import { UsersService } from "../users.service";
 
 @Injectable()
@@ -18,7 +18,7 @@ export class AuthRoleGuard implements CanActivate {
     ) { }
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
-        const roles: UserType[] = this.reflector.getAllAndOverride("roles", [
+        const roles: UserRole[] = this.reflector.getAllAndOverride("roles", [
             context.getHandler(),
             context.getClass(),
         ]);
@@ -48,6 +48,14 @@ export class AuthRoleGuard implements CanActivate {
 
         if (!user) {
             throw new UnauthorizedException("common.auth.userNotFound");
+        }
+
+        if (!user.isActive) {
+            throw new UnauthorizedException("common.auth.inactiveAccount");
+        }
+
+        if (user.tokenVersion !== payload.tokenVersion) {
+            throw new UnauthorizedException("common.auth.tokenRevoked");
         }
 
         if (!roles.includes(user.userType)) {

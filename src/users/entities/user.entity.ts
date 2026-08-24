@@ -1,7 +1,7 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import { Exclude } from 'class-transformer';
 import { CURRENT_TIMESTAMP } from '../../utils/constants';
-import { UserType } from '../../utils/enums';
+import { UserRole } from '../../utils/enums';
 
 @Entity({ name: 'users' })
 export class User {
@@ -18,11 +18,18 @@ export class User {
   @Exclude()
   password!: string;
 
-  @Column({ type: 'enum', enum: UserType, default: UserType.NORMAL_USER })
-  userType!: UserType;
+  @Column({ type: 'enum', enum: UserRole, default: UserRole.ADMIN })
+  userType!: UserRole;
 
   @Column({ type: 'boolean', default: false })
   isActive!: boolean;
+
+  /**
+   * Incremented on every password-reset to invalidate all previously issued
+   * access- and refresh-tokens without needing a token revocation store.
+   */
+  @Column({ type: 'int', default: 0 })
+  tokenVersion!: number;
 
   @Column({ type: 'varchar', nullable: true })
   profileImage!: string | null;

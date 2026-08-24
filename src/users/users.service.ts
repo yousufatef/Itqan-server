@@ -1,13 +1,11 @@
-import { AuthProvider } from '../auth/auth.provider';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
-import { JwtService } from '@nestjs/jwt';
 import { UserProfile } from '../utils/types';
-import { UserType } from '../utils/enums';
+import { UserRole } from '../utils/enums';
 import { join } from 'node:path';
 import { unlinkSync, existsSync } from 'node:fs';
 
@@ -45,7 +43,7 @@ export class UsersService {
     if (!user) {
       throw new BadRequestException('common.users.notFound');
     }
-    if (user.id === id || user.userType === UserType.ADMIN) {
+    if (user.id === id || user.userType === UserRole.SUPER_ADMIN) {
       // Clean up profile image before deleting user
       if (user.profileImage) {
         const imagePath = join(process.cwd(), `uploads/profile-images/${user.profileImage}`);

@@ -1,12 +1,12 @@
-import { UserType } from "./enums";
-
+import { UserRole } from "./enums";
 
 export type User = {
     id: number;
     email: string;
     username: string | null;
-    userType: UserType;
+    userType: UserRole;
     isActive: boolean;
+    tokenVersion: number;
     profileImage: string | null;
     created_at: Date;
     updated_at: Date;
@@ -15,23 +15,27 @@ export type User = {
 export type authTokensType = {
     accessToken: string;
     refreshToken: string;
-    user: User
+    user: Omit<User, 'password'>;
 };
 
 export type JwtPayloadType = {
     id: number;
     userType: string;
+    tokenVersion: number;
 };
+
 export type accessTokenType = {
     accessToken: string;
-}
+};
+
 export interface UserProfile {
     email: string;
     username: string | null;
-    userType: UserType;
+    userType: UserRole;
     id: number;
     created_at: Date;
     updated_at: Date;
     isActive: boolean;
+    tokenVersion: number;
     profileImage: string | null;
 }

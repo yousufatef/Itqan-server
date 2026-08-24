@@ -5,7 +5,7 @@ import { AuthGuard } from './guards/auth.guard';
 import { AuthRoleGuard } from './guards/auth-role.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { Roles } from './decorators/user-role.decorator';
-import { UserType } from '../utils/enums';
+import { UserRole } from '../utils/enums';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { JwtPayloadType } from '../utils/types';
 import type { Response } from 'express';
@@ -23,7 +23,7 @@ export class UsersController {
   }
 
   @Delete(':id')
-  @Roles(UserType.ADMIN, UserType.NORMAL_USER)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @UseGuards(AuthRoleGuard)
   @ResponseMessage('common.users.deleted')
   remove(@CurrentUser() payload: JwtPayloadType) {
@@ -45,7 +45,7 @@ export class UsersController {
   }
 
   @Get()
-  @Roles(UserType.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @UseGuards(AuthGuard)
   @ResponseMessage('common.users.listRetrieved')
   getAllUsers() {
@@ -53,7 +53,7 @@ export class UsersController {
   }
 
   @Get(':id')
-  @Roles(UserType.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @UseGuards(AuthRoleGuard)
   @ResponseMessage('common.users.retrieved')
   getUserById(@Param('id') id: string) {
@@ -62,7 +62,7 @@ export class UsersController {
 
   // PUT/POST have no static/dynamic conflict so order doesn't matter here
   @Put(':id')
-  @Roles(UserType.ADMIN, UserType.NORMAL_USER)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @UseGuards(AuthRoleGuard)
   @ResponseMessage('common.users.updated')
   update(@CurrentUser() payload: JwtPayloadType, @Body() body: UpdateUserDto) {

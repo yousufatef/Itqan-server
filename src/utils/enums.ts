@@ -1,10 +1,5 @@
-export enum UserType {
-    SUPER_ADMIN = 'super_admin',
-    ADMIN = 'admin',
-    NORMAL_USER = 'normal_user',
-}
-
 export enum UserRole {
+    SUPER_ADMIN = 'super_admin',
     ADMIN = 'admin',
     TEACHER = 'teacher',
     PARENT = 'parent',
