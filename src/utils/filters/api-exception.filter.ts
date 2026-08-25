@@ -30,8 +30,6 @@ export class ApiExceptionFilter implements ExceptionFilter {
     const i18nContext = I18nContext.current(host);
     const lang = i18nContext?.lang;
 
-    console.log(this.i18n.getSupportedLanguages?.());
-
     const statusCode =
       exception instanceof HttpException
         ? exception.getStatus()
@@ -46,8 +44,6 @@ export class ApiExceptionFilter implements ExceptionFilter {
       ? 'common.common.validationFailed'
       : this.getMessageKey(exception, statusCode);
 
-    console.log('lang:', lang);
-    console.log('messageKey:', messageKey);
     const body: ApiResponse = {
       isSuccess: false,
       message: this.translate(messageKey, lang),
