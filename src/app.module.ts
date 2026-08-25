@@ -26,7 +26,7 @@ import { dataSourceOptions } from '../db/data-source';
     I18nModule.forRoot({
       fallbackLanguage: 'en',
       loaderOptions: {
-        path: join(__dirname, '..', 'i18n'),
+        path: join(__dirname, 'i18n'),
         watch: true,
       },
       resolvers: [
