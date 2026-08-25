@@ -1,13 +1,8 @@
-// dto/reset-password.dto.ts
-import { IsEmail, IsString, Length, MinLength } from 'class-validator';
+import { IsString, MinLength } from 'class-validator';
 
 export class ResetPasswordDto {
-    @IsEmail()
-    email!: string;
-
     @IsString()
-    @Length(6, 6)
-    otp!: string;
+    resetToken!: string;
 
     @IsString()
     @MinLength(8)

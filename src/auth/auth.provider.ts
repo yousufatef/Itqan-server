@@ -6,13 +6,12 @@ import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 import { LoginDto } from './dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
-import { authTokensType, JwtPayloadType } from '../utils/types';
+import { authTokensType, JwtPayloadType, ResetTokenPayloadType } from '../utils/types';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { MailService } from '../mail/mail.service';
 import { Otp } from '../otp/entities/otp.entity';
-
 @Injectable()
 export class AuthProvider {
 
@@ -57,7 +56,6 @@ export class AuthProvider {
 
     async login(loginDto: LoginDto): Promise<authTokensType> {
         const { email, password } = loginDto;
-        console.log("🚀 ~ AuthProvider ~ login ~ email:", email)
 
         // Explicitly select password in case the User entity marks it `select: false`
         const user = await this.userRepository
@@ -113,7 +111,8 @@ export class AuthProvider {
 
         // Always return the same message — don't leak whether the email exists
         const genericResponse = {
-            message: 'common.auth.otpSentIfExists',
+            message: 'otp Sent successfully if email exists',
+            // message: 'common.auth.otpSentIfExists',
         };
 
         if (!user) return genericResponse;
@@ -186,29 +185,53 @@ export class AuthProvider {
         return { user, otpRecord };
     }
 
-    async verifyOtp(dto: VerifyOtpDto): Promise<{ valid: boolean }> {
+    async verifyOtp(dto: VerifyOtpDto): Promise<{ resetToken: string }> {
         const { email, otp } = dto;
-        await this.validateOtp(email, otp);
-        return { valid: true };
+        const { user, otpRecord } = await this.validateOtp(email, otp);
+    
+        otpRecord.isUsed = true;
+        await this.otpRepository.save(otpRecord);
+    
+        const payload: ResetTokenPayloadType = {
+            id: String(user.id),
+            otpId: String(otpRecord.id),
+        };
+    
+        const resetToken = await this.jwtService.signAsync(payload, {
+            secret: process.env.JWT_RESET_SECRET,
+            expiresIn: (process.env.JWT_RESET_EXPIRY || '10m') as any,
+        });
+    
+        return { resetToken };
     }
 
     async resetPassword(dto: ResetPasswordDto): Promise<{ message: string }> {
-        const { email, otp, newPassword } = dto;
-        const { user, otpRecord } = await this.validateOtp(email, otp);
-
-        // Mark OTP as used
-        otpRecord.isUsed = true;
-        await this.otpRepository.save(otpRecord);
-
-        // Update password & increment token version to invalidate all active refresh tokens.
-        // NOTE: access tokens (short-lived, default 15m) remain valid until they expire unless
-        // your JWT access-token guard/strategy also checks tokenVersion against the DB on each
-        // request. If you need immediate revocation, add that check there.
+        const { resetToken, newPassword } = dto;
+    
+        let payload: ResetTokenPayloadType;
+        try {
+            payload = await this.jwtService.verifyAsync<ResetTokenPayloadType>(resetToken, {
+                secret: process.env.JWT_RESET_SECRET,
+            });
+        } catch {
+            throw new BadRequestException('common.auth.invalidOrExpiredResetToken');
+        }
+    
+        const user = await this.userRepository.findOne({ where: { id: Number(payload.id) } });
+        if (!user || !user.isActive) {
+            throw new BadRequestException('common.auth.invalidOrExpiredResetToken');
+        }
+    
+        const otpRecord = await this.otpRepository.findOne({ where: { id: Number(payload.otpId) } });
+        if (!otpRecord || !otpRecord.isUsed || otpRecord.userId !== user.id) {
+            throw new BadRequestException('common.auth.invalidOrExpiredResetToken');
+        }
+    
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         user.password = hashedPassword;
         user.tokenVersion += 1;
         await this.userRepository.save(user);
-
+    
         return { message: 'common.auth.passwordResetSuccess' };
     }
 }

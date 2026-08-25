@@ -39,3 +39,7 @@ export interface UserProfile {
     tokenVersion: number;
     profileImage: string | null;
 }
+export type ResetTokenPayloadType = {
+    id: string;
+    otpId: string;
+};
