@@ -2,12 +2,12 @@ import { DataSource, DataSourceOptions } from 'typeorm';
 import { config } from 'dotenv';
 import { join } from 'path';
 
-config({
-  path: process.env.NODE_ENV !== 'production' ? `.env.${process.env.NODE_ENV || 'development'}` : '.env',
-});
+// Always load .env first so DATABASE_URL (remote DB) takes priority
+config({ path: '.env' });
 
-if (!process.env.DATABASE_URL) {
-  config({ path: '.env' });
+// Then load env-specific file for other variables (SMTP, JWT, etc.)
+if (process.env.NODE_ENV !== 'production') {
+  config({ path: `.env.${process.env.NODE_ENV || 'development'}`, override: false });
 }
 
 export const dataSourceOptions: DataSourceOptions = {

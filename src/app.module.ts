@@ -41,7 +41,8 @@ import { dataSourceOptions } from '../db/data-source';
     PublicModule,
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: process.env.NODE_ENV !== 'production' ? `.env.${process.env.NODE_ENV || 'development'}` : '.env',
+      // Load .env first (DATABASE_URL remote), then env-specific file for other vars
+      envFilePath: ['.env', process.env.NODE_ENV !== 'production' ? `.env.${process.env.NODE_ENV || 'development'}` : '.env'],
     }),
     ThrottlerModule.forRoot({
       throttlers: [{
