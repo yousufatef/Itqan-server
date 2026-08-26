@@ -1,17 +1,25 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { IsOptional, IsString, Length } from 'class-validator';
-import { CreateUserDto } from './create-user.dto';
+import { IsEmail, IsEnum, IsOptional, IsString, Length, Matches } from 'class-validator';
 import { i18nValidationMessage } from 'nestjs-i18n';
+import { UserRole } from '../../utils/enums';
 
-export class UpdateUserDto extends PartialType(CreateUserDto) {
-    @IsString({ message: i18nValidationMessage('validation.isString') })
-    @IsOptional()
-    @Length(2, 150, { message: i18nValidationMessage('validation.usernameLength') })
-    username?: string;
+export class UpdateUserDto {
+  @IsOptional()
+  @IsString({ message: i18nValidationMessage('validation.isString') })
+  @Length(2, 150, { message: i18nValidationMessage('validation.usernameLength') })
+  username?: string;
 
-    @IsString({ message: i18nValidationMessage('validation.isString') })
-    @IsOptional()
-    @Length(8, 128, { message: i18nValidationMessage('validation.passwordLength') })
-    password?: string;
+  @IsOptional()
+  @IsEmail({}, { message: i18nValidationMessage('validation.isEmail') })
+  email?: string;
 
+  @IsOptional()
+  @IsString({ message: i18nValidationMessage('validation.isString') })
+  @Matches(/^\+?[0-9\s\-()]{7,20}$/, {
+    message: i18nValidationMessage('validation.isPhoneNumber'),
+  })
+  phoneNumber?: string;
+
+  @IsOptional()
+  @IsEnum(UserRole, { message: i18nValidationMessage('validation.isEnum') })
+  role?: UserRole;
 }

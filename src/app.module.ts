@@ -1,5 +1,6 @@
 import { ClassSerializerInterceptor, MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
 import { join } from 'path';
+import { existsSync } from 'fs';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
@@ -21,12 +22,19 @@ import { ApiResponseInterceptor } from './utils/interceptors/api-response.interc
 import { ApiExceptionFilter } from './utils/filters/api-exception.filter';
 import { dataSourceOptions } from '../db/data-source';
 
+const i18nPath = [
+  join(process.cwd(), 'dist', 'i18n'),
+  join(process.cwd(), 'src', 'i18n'),
+  join(__dirname, 'i18n'),
+  join(__dirname, '..', 'i18n'),
+].find((path) => existsSync(path)) ?? join(process.cwd(), 'src', 'i18n');
+
 @Module({
   imports: [
     I18nModule.forRoot({
       fallbackLanguage: 'en',
       loaderOptions: {
-        path: join(__dirname, 'i18n'),
+        path: i18nPath,
         watch: true,
       },
       resolvers: [

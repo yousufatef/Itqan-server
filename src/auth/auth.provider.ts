@@ -188,26 +188,26 @@ export class AuthProvider {
     async verifyOtp(dto: VerifyOtpDto): Promise<{ resetToken: string }> {
         const { email, otp } = dto;
         const { user, otpRecord } = await this.validateOtp(email, otp);
-    
+
         otpRecord.isUsed = true;
         await this.otpRepository.save(otpRecord);
-    
+
         const payload: ResetTokenPayloadType = {
             id: String(user.id),
             otpId: String(otpRecord.id),
         };
-    
+
         const resetToken = await this.jwtService.signAsync(payload, {
             secret: process.env.JWT_RESET_SECRET,
             expiresIn: (process.env.JWT_RESET_EXPIRY || '10m') as any,
         });
-    
+
         return { resetToken };
     }
 
     async resetPassword(dto: ResetPasswordDto): Promise<{ message: string }> {
         const { resetToken, newPassword } = dto;
-    
+
         let payload: ResetTokenPayloadType;
         try {
             payload = await this.jwtService.verifyAsync<ResetTokenPayloadType>(resetToken, {
@@ -216,22 +216,22 @@ export class AuthProvider {
         } catch {
             throw new BadRequestException('common.auth.invalidOrExpiredResetToken');
         }
-    
+
         const user = await this.userRepository.findOne({ where: { id: Number(payload.id) } });
         if (!user || !user.isActive) {
             throw new BadRequestException('common.auth.invalidOrExpiredResetToken');
         }
-    
+
         const otpRecord = await this.otpRepository.findOne({ where: { id: Number(payload.otpId) } });
         if (!otpRecord || !otpRecord.isUsed || otpRecord.userId !== user.id) {
             throw new BadRequestException('common.auth.invalidOrExpiredResetToken');
         }
-    
+
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         user.password = hashedPassword;
         user.tokenVersion += 1;
         await this.userRepository.save(user);
-    
+
         return { message: 'common.auth.passwordResetSuccess' };
     }
 }

@@ -11,8 +11,11 @@ export class User {
   @Column({ type: 'varchar', length: 250 })
   email!: string;
 
-  @Column({ type: 'varchar', length: 150, nullable: true })
-  username!: string | null;
+  @Column({ type: 'varchar', length: 150 })
+  username!: string;
+
+  @Column({ type: 'varchar', length: 30, nullable: true })
+  phoneNumber!: string | null;
 
   @Column()
   @Exclude()
@@ -24,10 +27,6 @@ export class User {
   @Column({ type: 'boolean', default: false })
   isActive!: boolean;
 
-  /**
-   * Incremented on every password-reset to invalidate all previously issued
-   * access- and refresh-tokens without needing a token revocation store.
-   */
   @Column({ type: 'int', default: 0 })
   tokenVersion!: number;
 

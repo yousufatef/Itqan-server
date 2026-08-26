@@ -1,10 +1,27 @@
-import { Controller, Get, Post, Body, Param, Delete, UseGuards, Put, BadRequestException, UploadedFile, UseInterceptors, Res, Patch } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Delete,
+  UseGuards,
+  Put,
+  BadRequestException,
+  UploadedFile,
+  UseInterceptors,
+  Res,
+  Patch,
+  Query,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
+import { AdminUpdateUserDto } from './dto/admin-update-user.dto';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UserIdDto } from './dto/user-id.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { AuthGuard } from './guards/auth.guard';
 import { AuthRoleGuard } from './guards/auth-role.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
-import { Roles } from './decorators/user-role.decorator';
 import { UserRole } from '../utils/enums';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { JwtPayloadType } from '../utils/types';
@@ -15,27 +32,91 @@ import { ResponseMessage } from '../utils/decorators/response-message.decorator'
 export class UsersController {
   constructor(private readonly usersService: UsersService) { }
 
-  @Delete('images/remove-profile-image')
-  @UseGuards(AuthGuard)
-  @ResponseMessage('users.profileImageRemoved')
-  removeProfileImage(@CurrentUser() payload: JwtPayloadType) {
-    return this.usersService.removeProfileImage(payload.id);
+  // ─── Admin endpoints ──────────────────────────────────────────────────────
+
+  /**
+   * GET /users/getPaginatedUsers?page=1&limit=10&role=teacher&searchTerm=ali
+   * Paginated list with optional role filter and username/email search
+   */
+  @Get('getPaginatedUsers')
+  @UseGuards(AuthRoleGuard)
+  @ResponseMessage('common.users.listRetrieved')
+  getPaginatedUsers(
+    @Query('page') page = '1',
+    @Query('limit') limit = '10',
+    @Query('role') role?: UserRole,
+    @Query('searchTerm') searchTerm?: string,
+  ) {
+    return this.usersService.getPaginatedUsers(
+      Math.max(1, parseInt(page, 10) || 1),
+      Math.min(100, parseInt(limit, 10) || 10),
+      role,
+      searchTerm?.trim(),
+    );
   }
 
-  @Delete(':id')
-  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  /**
+   * GET /users/dropdown?role=teacher|parent
+   * Lightweight list for dropdowns (id, username only)
+   */
+  @Get('dropdown')
+  @UseGuards(AuthRoleGuard)
+  @ResponseMessage('common.users.listRetrieved')
+  getDropdown(@Query('role') role?: UserRole) {
+    return this.usersService.getDropdownUsers(role);
+  }
+
+  /**
+   * POST /users/createUser
+   * Create a new user (username, email, phoneNumber, role) — default password assigned
+   */
+  @Post('createUser')
+  @UseGuards(AuthRoleGuard)
+  @ResponseMessage('common.users.created')
+  createUser(@Body() body: CreateUserDto) {
+    return this.usersService.createUser(body);
+  }
+
+  /**
+   * PATCH /users/updateUser
+   * Update any user: { id, username?, email?, phoneNumber?, role? }
+   */
+  @Patch('updateUser')
+  @UseGuards(AuthRoleGuard)
+  @ResponseMessage('common.users.updated')
+  updateUser(@Body() body: AdminUpdateUserDto) {
+    return this.usersService.adminUpdateUser(body);
+  }
+
+  /**
+   * DELETE /users/deleteUser
+   * Delete a user by ID passed in body: { id }
+   */
+  @Delete('deleteUser')
   @UseGuards(AuthRoleGuard)
   @ResponseMessage('common.users.deleted')
-  remove(@CurrentUser() payload: JwtPayloadType) {
-    return this.usersService.remove(payload.id);
+  deleteUser(@Body() body: UserIdDto) {
+    return this.usersService.deleteUser(body);
   }
 
-  // ✅ Static GET routes before dynamic :id
-  @Get('profile')
+  /**
+   * PATCH /users/statusToggle
+   * Toggle isActive flag for a user: { id }
+   */
+  @Patch('statusToggle')
+  @UseGuards(AuthRoleGuard)
+  @ResponseMessage('common.users.statusToggled')
+  statusToggle(@Body() body: UserIdDto) {
+    return this.usersService.statusToggle(body);
+  }
+
+  // ─── Profile image endpoints ──────────────────────────────────────────────
+
+  @Delete('images/remove-profile-image')
   @UseGuards(AuthGuard)
-  @ResponseMessage('common.users.retrieved')
-  getCurrentUser(@CurrentUser() payload: JwtPayloadType) {
-    return this.usersService.getCurrentUser(payload.id);
+  @ResponseMessage('common.users.profileImageRemoved')
+  removeProfileImage(@CurrentUser() payload: JwtPayloadType) {
+    return this.usersService.removeProfileImage(payload.id);
   }
 
   @Get('images/:image')
@@ -44,35 +125,10 @@ export class UsersController {
     return res.sendFile(image, { root: './uploads/profile-images' });
   }
 
-  @Get()
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
-  @UseGuards(AuthGuard)
-  @ResponseMessage('common.users.listRetrieved')
-  getAllUsers() {
-    return this.usersService.getAllUsers();
-  }
-
-  @Get(':id')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
-  @UseGuards(AuthRoleGuard)
-  @ResponseMessage('common.users.retrieved')
-  getUserById(@Param('id') id: string) {
-    return this.usersService.getUserById(+id);
-  }
-
-  // PUT/POST have no static/dynamic conflict so order doesn't matter here
-  @Put(':id')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
-  @UseGuards(AuthRoleGuard)
-  @ResponseMessage('common.users.updated')
-  update(@CurrentUser() payload: JwtPayloadType, @Body() body: UpdateUserDto) {
-    return this.usersService.update(payload.id, body);
-  }
-
   @Post('upload-profile-image')
   @UseGuards(AuthGuard)
   @UseInterceptors(FileInterceptor('user-image'))
-  @ResponseMessage('users.profileImageUploaded')
+  @ResponseMessage('common.users.profileImageUploaded')
   uploadProfileImage(
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser() payload: JwtPayloadType,
@@ -81,17 +137,42 @@ export class UsersController {
     return this.usersService.uploadProfileImage(file.filename, payload.id);
   }
 
-  // TODO: implement
-  @Patch(':id/toggle-active')
-  toggleActive(@Param('id') id: string) {
-    console.log(`endpoint hit: PATCH /users/${id}/toggle-active`);
-    return { message: 'User active status toggled placeholder', id };
+  // ─── Auth-user profile endpoint ───────────────────────────────────────────
+
+  @Get('profile')
+  @UseGuards(AuthGuard)
+  @ResponseMessage('common.users.retrieved')
+  getCurrentUser(@CurrentUser() payload: JwtPayloadType) {
+    return this.usersService.getCurrentUser(payload.id);
   }
 
-  // TODO: implement
-  @Get('export')
-  export() {
-    console.log('endpoint hit: GET /users/export');
-    return { message: 'Users export placeholder' };
+  // ─── Generic CRUD (kept for backwards compatibility) ─────────────────────
+
+  @Get()
+  @UseGuards(AuthRoleGuard)
+  @ResponseMessage('common.users.listRetrieved')
+  getAllUsers() {
+    return this.usersService.getAllUsers();
+  }
+
+  @Get(':id')
+  @UseGuards(AuthRoleGuard)
+  @ResponseMessage('common.users.retrieved')
+  getUserById(@Param('id') id: string) {
+    return this.usersService.getUserById(+id);
+  }
+
+  @Put(':id')
+  @UseGuards(AuthRoleGuard)
+  @ResponseMessage('common.users.updated')
+  update(@CurrentUser() payload: JwtPayloadType, @Body() body: UpdateUserDto) {
+    return this.usersService.update(payload.id, body);
+  }
+
+  @Delete(':id')
+  @UseGuards(AuthRoleGuard)
+  @ResponseMessage('common.users.deleted')
+  remove(@CurrentUser() payload: JwtPayloadType) {
+    return this.usersService.remove(payload.id);
   }
 }

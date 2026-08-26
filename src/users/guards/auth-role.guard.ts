@@ -3,7 +3,6 @@ import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import { Request } from "express";
 import { CURRENT_USER_KEY } from "../../utils/constants";
-import { Reflector } from "@nestjs/core";
 import { UserRole } from "../../utils/enums";
 import { UsersService } from "../users.service";
 
@@ -13,20 +12,10 @@ export class AuthRoleGuard implements CanActivate {
     constructor(
         private readonly jwtService: JwtService,
         private readonly config: ConfigService,
-        private readonly reflector: Reflector,
         private readonly userService: UsersService,
     ) { }
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
-        const roles: UserRole[] = this.reflector.getAllAndOverride("roles", [
-            context.getHandler(),
-            context.getClass(),
-        ]);
-
-        if (!roles || roles.length === 0) {
-            throw new UnauthorizedException("common.auth.noRoles");
-        }
-
         const request: Request = context.switchToHttp().getRequest();
         const [type, token] = request.headers.authorization?.split(' ') || [];
 
@@ -58,7 +47,7 @@ export class AuthRoleGuard implements CanActivate {
             throw new UnauthorizedException("common.auth.tokenRevoked");
         }
 
-        if (!roles.includes(user.userType)) {
+        if (![UserRole.SUPER_ADMIN, UserRole.ADMIN].includes(user.userType)) {
             throw new ForbiddenException("common.auth.insufficientRole");
         }
 

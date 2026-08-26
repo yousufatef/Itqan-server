@@ -10,10 +10,12 @@ if (process.env.NODE_ENV !== 'production') {
   config({ path: `.env.${process.env.NODE_ENV || 'development'}`, override: false });
 }
 
+const useDatabaseUrl = Boolean(process.env.DATABASE_URL) && process.env.USE_LOCAL_DB !== 'true';
+
 export const dataSourceOptions: DataSourceOptions = {
   type: 'postgres',
 
-  ...(process.env.DATABASE_URL
+  ...(useDatabaseUrl
     ? { url: process.env.DATABASE_URL }
     : {
       host: process.env.DB_HOST,
@@ -23,7 +25,7 @@ export const dataSourceOptions: DataSourceOptions = {
       database: process.env.DB_DATABASE,
     }),
 
-  ssl: process.env.DATABASE_URL
+  ssl: useDatabaseUrl
     ? { rejectUnauthorized: false }
     : false,
 

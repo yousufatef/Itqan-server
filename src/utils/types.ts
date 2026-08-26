@@ -4,6 +4,7 @@ export type User = {
     id: number;
     email: string;
     username: string | null;
+    phoneNumber: string | null;
     userType: UserRole;
     isActive: boolean;
     tokenVersion: number;
@@ -31,6 +32,7 @@ export type accessTokenType = {
 export interface UserProfile {
     email: string;
     username: string | null;
+    phoneNumber: string | null;
     userType: UserRole;
     id: number;
     created_at: Date;

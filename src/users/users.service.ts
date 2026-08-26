@@ -1,10 +1,11 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { CreateUserDto } from './dto/create-user.dto';
+import { AdminUpdateUserDto } from './dto/admin-update-user.dto';
+import { UserIdDto } from './dto/user-id.dto';
 import { User } from './entities/user.entity';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
-import { UserProfile } from '../utils/types';
 import { UserRole } from '../utils/enums';
 import { join } from 'node:path';
 import { unlinkSync, existsSync } from 'node:fs';
@@ -14,28 +15,140 @@ export class UsersService {
 
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
-    // private readonly AuthProvider: AuthProvider,
-    // private readonly jwtService: JwtService,
-
   ) { }
 
+  // ─── Admin: Paginated list with search + role filter ──────────────────────
 
-  async update(id: number, updateUserDto: UpdateUserDto) {
-    const { username, password } = updateUserDto;
-    try {
-      const user = await this.userRepository.findOne({ where: { id } });
-      if (!user) {
-        throw new BadRequestException('common.users.notFound');
-      }
-      if (username) user.username = username;
-      if (password) {
-        user.password = await this.hashPassword(password);
-      }
-      await this.userRepository.save(user);
-      return user;
-    } catch (error) {
-      throw error;
+  async getPaginatedUsers(
+    page: number,
+    limit: number,
+    role?: UserRole,
+    searchTerm?: string,
+  ) {
+    const where: any[] = [];
+
+    const baseWhere = role ? { userType: role } : {};
+
+    if (searchTerm) {
+      where.push(
+        { ...baseWhere, username: ILike(`%${searchTerm}%`) },
+        { ...baseWhere, email: ILike(`%${searchTerm}%`) },
+      );
+    } else {
+      where.push(baseWhere);
     }
+
+    const [data, total] = await this.userRepository.findAndCount({
+      where,
+      select: ['id', 'username', 'email', 'phoneNumber', 'userType', 'isActive', 'created_at'],
+      order: { created_at: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  // ─── Admin: Dropdown list (id + username only) ────────────────────────────
+
+  async getDropdownUsers(role?: UserRole) {
+    return this.userRepository.find({
+      where: role ? { userType: role } : {},
+      select: ['id', 'username'],
+      order: { username: 'ASC' },
+    });
+  }
+
+  // ─── Admin: Create user with default password ─────────────────────────────
+
+  async createUser(dto: CreateUserDto): Promise<User> {
+    const existing = await this.userRepository.findOne({ where: { email: dto.email } });
+    if (existing) {
+      throw new BadRequestException('common.users.alreadyExists');
+    }
+
+    const defaultPassword = 'Itqan@1234'; // default password — should be configurable
+    const hashed = await this.hashPassword(defaultPassword);
+
+    const user = this.userRepository.create({
+      username: dto.username,
+      email: dto.email,
+      phoneNumber: dto.phoneNumber ?? null,
+      userType: dto.role,
+      password: hashed,
+      isActive: true,
+    });
+
+    return this.userRepository.save(user);
+  }
+
+  // ─── Admin: Update any user ───────────────────────────────────────────────
+
+  async adminUpdateUser(dto: AdminUpdateUserDto): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { id: dto.id } });
+    if (!user) {
+      throw new BadRequestException('common.users.notFound');
+    }
+
+    if (dto.username !== undefined) user.username = dto.username;
+    if (dto.email !== undefined) user.email = dto.email;
+    if (dto.phoneNumber !== undefined) user.phoneNumber = dto.phoneNumber;
+    if (dto.role !== undefined) user.userType = dto.role;
+
+    return this.userRepository.save(user);
+  }
+
+  // ─── Admin: Delete user by ID ─────────────────────────────────────────────
+
+  async deleteUser({ id }: UserIdDto): Promise<null> {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new BadRequestException('common.users.notFound');
+    }
+
+    if (user.profileImage) {
+      const imagePath = join(process.cwd(), `uploads/profile-images/${user.profileImage}`);
+      if (existsSync(imagePath)) unlinkSync(imagePath);
+    }
+
+    await this.userRepository.delete(id);
+    return null;
+  }
+
+  // ─── Admin: Toggle active status ──────────────────────────────────────────
+
+  async statusToggle({ id }: UserIdDto): Promise<{ id: number; isActive: boolean }> {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new BadRequestException('common.users.notFound');
+    }
+
+    user.isActive = !user.isActive;
+    await this.userRepository.save(user);
+
+    return { id: user.id, isActive: user.isActive };
+  }
+
+  // ─── Existing helpers ─────────────────────────────────────────────────────
+
+  async update(id: number, updateData: { username?: string; password?: string }) {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new BadRequestException('common.users.notFound');
+    }
+    if (updateData.username) user.username = updateData.username;
+    if (updateData.password) {
+      user.password = await this.hashPassword(updateData.password);
+    }
+    return this.userRepository.save(user);
   }
 
   async remove(id: number) {
@@ -43,27 +156,21 @@ export class UsersService {
     if (!user) {
       throw new BadRequestException('common.users.notFound');
     }
-    if (user.id === id || user.userType === UserRole.SUPER_ADMIN) {
-      // Clean up profile image before deleting user
-      if (user.profileImage) {
-        const imagePath = join(process.cwd(), `uploads/profile-images/${user.profileImage}`);
-        if (existsSync(imagePath)) {
-          unlinkSync(imagePath);
-        }
-      }
-      await this.userRepository.delete(id);
-      return null;
+    if (user.profileImage) {
+      const imagePath = join(process.cwd(), `uploads/profile-images/${user.profileImage}`);
+      if (existsSync(imagePath)) unlinkSync(imagePath);
     }
+    await this.userRepository.delete(id);
+    return null;
   }
 
   async hashPassword(password: string): Promise<string> {
     const salt = await bcrypt.genSalt();
-    return await bcrypt.hash(password, salt);
+    return bcrypt.hash(password, salt);
   }
 
   async uploadProfileImage(newProfileImage: string, userId: number) {
     const user = await this.getCurrentUser(userId);
-
     if (user.profileImage === null) {
       user.profileImage = newProfileImage;
     } else {
@@ -75,33 +182,21 @@ export class UsersService {
 
   async removeProfileImage(userId: number) {
     const user = await this.getCurrentUser(userId);
-
     if (user.profileImage === null) {
       throw new BadRequestException('common.users.noProfileImage');
     }
-
     const imagePath = join(process.cwd(), `uploads/profile-images/${user.profileImage}`);
-
-    if (existsSync(imagePath)) {
-      unlinkSync(imagePath);
-    }
-
+    if (existsSync(imagePath)) unlinkSync(imagePath);
     user.profileImage = null as any;
     return this.userRepository.save(user);
   }
 
-  async getCurrentUser(id: number): Promise<UserProfile> {
-    try {
-      const user = await this.userRepository.findOne({ where: { id: id } });
-      console.log("🚀 ~ UsersService ~ getCurrentUser ~ user:", user)
-
-      if (!user) {
-        throw new BadRequestException('common.users.notFound');
-      }
-      return user;
-    } catch (error) {
-      throw error;
+  async getCurrentUser(id: number): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new BadRequestException('common.users.notFound');
     }
+    return user;
   }
 
   getAllUsers(): Promise<User[]> {
@@ -109,14 +204,10 @@ export class UsersService {
   }
 
   async getUserById(id: number) {
-    try {
-      const user = await this.userRepository.findOne({ where: { id } });
-      if (!user) {
-        throw new BadRequestException('common.users.notFound');
-      }
-      return user;
-    } catch (error) {
-      throw error;
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new BadRequestException('common.users.notFound');
     }
+    return user;
   }
 }

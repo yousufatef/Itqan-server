@@ -1,14 +1,22 @@
-import { IsEmail, IsEnum, IsOptional, IsString, Length, Matches } from 'class-validator';
+import { IsEmail, IsEnum, IsInt, IsOptional, IsPositive, IsString, Length, Matches } from 'class-validator';
 import { i18nValidationMessage } from 'nestjs-i18n';
+import { Type } from 'class-transformer';
 import { UserRole } from '../../utils/enums';
 
-export class CreateUserDto {
+export class AdminUpdateUserDto {
+  @Type(() => Number)
+  @IsInt({ message: i18nValidationMessage('validation.isInt') })
+  @IsPositive({ message: i18nValidationMessage('validation.isPositive') })
+  id!: number;
+
+  @IsOptional()
   @IsString({ message: i18nValidationMessage('validation.isString') })
   @Length(2, 150, { message: i18nValidationMessage('validation.usernameLength') })
-  username!: string;
+  username?: string;
 
+  @IsOptional()
   @IsEmail({}, { message: i18nValidationMessage('validation.isEmail') })
-  email!: string;
+  email?: string;
 
   @IsOptional()
   @IsString({ message: i18nValidationMessage('validation.isString') })
@@ -17,6 +25,7 @@ export class CreateUserDto {
   })
   phoneNumber?: string;
 
+  @IsOptional()
   @IsEnum(UserRole, { message: i18nValidationMessage('validation.isEnum') })
-  role!: UserRole;
+  role?: UserRole;
 }
