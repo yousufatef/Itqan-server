@@ -117,7 +117,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
           ? response
           : this.getResponseMessage(response);
 
-      if (message && this.looksLikeTranslationKey(message)) {
+      if (message) {
         return message;
       }
     }

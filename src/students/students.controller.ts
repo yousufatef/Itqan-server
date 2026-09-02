@@ -1,49 +1,47 @@
-import { Controller, Get, Post, Body, Param, Patch, Delete, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { AuthRoleGuard } from '../users/guards/auth-role.guard';
+import { ResponseMessage } from '../utils/decorators/response-message.decorator';
+import { CreateStudentDto } from './dto/create-student.dto';
+import { UpdateStudentDto } from './dto/update-student.dto';
 import { StudentsService } from './students.service';
 
 @Controller('students')
 export class StudentsController {
     constructor(private readonly studentsService: StudentsService) { }
 
-    // TODO: implement
-    @Get()
-    findAll(@Query('search') search?: string, @Query('page') page?: string, @Query('limit') limit?: string) {
-        console.log('endpoint hit: GET /students');
-        return { message: 'Students list placeholder', search, page, limit };
+    @Get('getPaginatedStudents')
+    @UseGuards(AuthRoleGuard)
+    @ResponseMessage('common.students.listRetrieved')
+    getPaginatedStudents(
+        @Query('page') page = '1',
+        @Query('limit') limit = '10',
+        @Query('searchTerm') searchTerm?: string,
+    ) {
+        return this.studentsService.getPaginatedStudents(
+            Math.max(1, parseInt(page, 10) || 1),
+            Math.min(100, parseInt(limit, 10) || 10),
+            searchTerm?.trim(),
+        );
     }
 
-    // TODO: implement
-    @Post()
-    create(@Body() body: any) {
-        console.log('endpoint hit: POST /students');
-        return { message: 'Student created placeholder', body };
+    @Post('createStudent')
+    @UseGuards(AuthRoleGuard)
+    @ResponseMessage('common.students.created')
+    createStudent(@Body() body: CreateStudentDto) {
+        return this.studentsService.createStudent(body);
     }
 
-    // TODO: implement
-    @Get(':id')
-    findOne(@Param('id') id: string) {
-        console.log(`endpoint hit: GET /students/${id}`);
-        return { message: 'Student details placeholder', id };
+    @Patch('updateStudent/:id')
+    @UseGuards(AuthRoleGuard)
+    @ResponseMessage('common.students.updated')
+    updateStudent(@Param('id', ParseIntPipe) id: number, @Body() body: UpdateStudentDto) {
+        return this.studentsService.updateStudent(id, body);
     }
 
-    // TODO: implement
-    @Patch(':id')
-    update(@Param('id') id: string, @Body() body: any) {
-        console.log(`endpoint hit: PATCH /students/${id}`);
-        return { message: 'Student updated placeholder', id, body };
-    }
-
-    // TODO: implement
-    @Delete(':id')
-    remove(@Param('id') id: string) {
-        console.log(`endpoint hit: DELETE /students/${id}`);
-        return { message: 'Student deleted placeholder', id };
-    }
-
-    // TODO: implement
-    @Get('export')
-    export() {
-        console.log('endpoint hit: GET /students/export');
-        return { message: 'Students export placeholder' };
+    @Delete('deleteStudent/:id')
+    @UseGuards(AuthRoleGuard)
+    @ResponseMessage('students deleted successfully')
+    deleteStudent(@Param('id', ParseIntPipe) id: number) {
+        return this.studentsService.deleteStudent({ id });
     }
 }

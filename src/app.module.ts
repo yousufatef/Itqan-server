@@ -20,7 +20,7 @@ import { PublicModule } from './public/public.module';
 import { LoggerMiddleware } from './utils/middlewares/logger.middleware';
 import { ApiResponseInterceptor } from './utils/interceptors/api-response.interceptor';
 import { ApiExceptionFilter } from './utils/filters/api-exception.filter';
-import { dataSourceOptions } from '../db/data-source';
+import { dataSourceOptions } from './db/data-source';
 
 const i18nPath = [
   join(process.cwd(), 'dist', 'i18n'),

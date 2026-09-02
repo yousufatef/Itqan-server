@@ -14,9 +14,9 @@ import { AuthModule } from '../auth/auth.module';
     TypeOrmModule.forFeature([User]),
     AuthModule,
     JwtModule.registerAsync({
+      global: true,
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        global: true,
         secret: config.get<string>('JWT_SECRET')!,
         signOptions: {
           expiresIn: config.get<string>('JWT_EXPIRES_IN') as any,

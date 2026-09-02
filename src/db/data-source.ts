@@ -31,7 +31,7 @@ export const dataSourceOptions: DataSourceOptions = {
 
   synchronize: false,
 
-  entities: [join(__dirname, '../src/**/*.entity.js')],
+  entities: [join(__dirname, '../**/*.entity.js')],
 
   migrations: [join(__dirname, 'migrations/*.js')],
 };

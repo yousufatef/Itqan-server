@@ -13,6 +13,7 @@ import {
   Res,
   Patch,
   Query,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { AdminUpdateUserDto } from './dto/admin-update-user.dto';
@@ -78,36 +79,36 @@ export class UsersController {
   }
 
   /**
-   * PATCH /users/updateUser
-   * Update any user: { id, username?, email?, phoneNumber?, role? }
+   * PATCH /users/updateUser/:id
+   * Update any user: { username?, email?, phoneNumber?, role? }
    */
-  @Patch('updateUser')
+  @Patch('updateUser/:id')
   @UseGuards(AuthRoleGuard)
   @ResponseMessage('common.users.updated')
-  updateUser(@Body() body: AdminUpdateUserDto) {
-    return this.usersService.adminUpdateUser(body);
+  updateUser(@Param('id', ParseIntPipe) id: number, @Body() body: Omit<AdminUpdateUserDto, 'id'>) {
+    return this.usersService.adminUpdateUser({ ...body, id } as AdminUpdateUserDto);
   }
 
   /**
-   * DELETE /users/deleteUser
-   * Delete a user by ID passed in body: { id }
+   * DELETE /users/deleteUser/:id
+   * Delete a user by ID passed in params
    */
-  @Delete('deleteUser')
+  @Delete('deleteUser/:id')
   @UseGuards(AuthRoleGuard)
   @ResponseMessage('common.users.deleted')
-  deleteUser(@Body() body: UserIdDto) {
-    return this.usersService.deleteUser(body);
+  deleteUser(@Param('id', ParseIntPipe) id: number) {
+    return this.usersService.deleteUser({ id });
   }
 
   /**
-   * PATCH /users/statusToggle
-   * Toggle isActive flag for a user: { id }
+   * PATCH /users/statusToggle/:id
+   * Toggle isActive flag for a user by ID
    */
-  @Patch('statusToggle')
+  @Patch('statusToggle/:id')
   @UseGuards(AuthRoleGuard)
   @ResponseMessage('common.users.statusToggled')
-  statusToggle(@Body() body: UserIdDto) {
-    return this.usersService.statusToggle(body);
+  statusToggle(@Param('id', ParseIntPipe) id: number) {
+    return this.usersService.statusToggle({ id });
   }
 
   // ─── Profile image endpoints ──────────────────────────────────────────────

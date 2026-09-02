@@ -4,9 +4,9 @@ import { Type } from 'class-transformer';
 import { UserRole } from '../../utils/enums';
 
 export class AdminUpdateUserDto {
-  @Type(() => Number)
   @IsInt({ message: i18nValidationMessage('validation.isInt') })
   @IsPositive({ message: i18nValidationMessage('validation.isPositive') })
+  @Type(() => Number)
   id!: number;
 
   @IsOptional()
