@@ -4,6 +4,7 @@ describe('StudentsService', () => {
     let studentRepository: any;
     let parentRepository: any;
     let parentStudentRepository: any;
+    let usersService: any;
     let service: StudentsService;
 
     beforeEach(() => {
@@ -23,11 +24,15 @@ describe('StudentsService', () => {
             save: jest.fn(),
             delete: jest.fn(),
         };
+        usersService = {
+            getUserById: jest.fn().mockResolvedValue({ id: 77, userType: 'parent' }),
+        };
 
         service = new StudentsService(
             studentRepository,
             parentRepository,
             parentStudentRepository,
+            usersService,
         );
     });
 
@@ -55,8 +60,7 @@ describe('StudentsService', () => {
             name: 'Ali Hassan',
             phoneNumber: '0501234567',
             birthOfDate: '2020-02-15',
-            parentId: 8,
-            parentUserId: 77,
+            parent: { id: 77 },
         });
     });
 
@@ -94,7 +98,7 @@ describe('StudentsService', () => {
             name: 'Sara',
             phoneNumber: '0507654321',
             birthOfDate: '2018-03-10',
-            parentId: 8,
+            parent: { id: 77 },
         });
     });
 });
