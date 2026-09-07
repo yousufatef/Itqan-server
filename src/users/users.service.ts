@@ -25,7 +25,9 @@ export class UsersService {
     role?: UserRole,
     searchTerm?: string,
   ) {
-    if (role === UserRole.SUPER_ADMIN) {
+    const normalizedRole = role || undefined;
+
+    if (normalizedRole === UserRole.SUPER_ADMIN) {
       return {
         data: [],
         meta: {
@@ -39,7 +41,7 @@ export class UsersService {
 
     const where: any[] = [];
 
-    const baseWhere = { userType: role ?? Not(UserRole.SUPER_ADMIN) };
+    const baseWhere = { userType: normalizedRole ?? Not(UserRole.SUPER_ADMIN) };
 
     if (searchTerm) {
       where.push(
@@ -72,12 +74,14 @@ export class UsersService {
   // ─── Admin: Dropdown list (id + username only) ────────────────────────────
 
   async getDropdownUsers(role?: UserRole) {
-    if (role === UserRole.SUPER_ADMIN) {
+    const normalizedRole = role || undefined;
+
+    if (normalizedRole === UserRole.SUPER_ADMIN) {
       return [];
     }
 
     return this.userRepository.find({
-      where: { userType: role ?? Not(UserRole.SUPER_ADMIN) },
+      where: { userType: normalizedRole ?? Not(UserRole.SUPER_ADMIN) },
       select: ['id', 'username'],
       order: { username: 'ASC' },
     });
