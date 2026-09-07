@@ -39,8 +39,10 @@ export class StudentsService {
             name: student.name,
             phoneNumber: student.phone_number ?? null,
             birthOfDate,
-            parentId,
-            parentUserId,
+            parent: {
+                id: parentId,
+                parentName: parentStudent?.parent?.user?.username ?? null,
+            },
             createdAt: student.created_at,
             updatedAt: student.updated_at,
         };
