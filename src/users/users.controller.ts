@@ -18,7 +18,6 @@ import {
 import { UsersService } from './users.service';
 import { AdminUpdateUserDto } from './dto/admin-update-user.dto';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UserIdDto } from './dto/user-id.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { AuthGuard } from './guards/auth.guard';
 import { AuthRoleGuard } from './guards/auth-role.guard';

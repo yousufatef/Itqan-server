@@ -3,7 +3,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { AdminUpdateUserDto } from './dto/admin-update-user.dto';
 import { UserIdDto } from './dto/user-id.dto';
 import { User } from './entities/user.entity';
-import { ILike, Repository } from 'typeorm';
+import { ILike, Not, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
 import { UserRole } from '../utils/enums';
@@ -25,9 +25,21 @@ export class UsersService {
     role?: UserRole,
     searchTerm?: string,
   ) {
+    if (role === UserRole.SUPER_ADMIN) {
+      return {
+        data: [],
+        meta: {
+          total: 0,
+          page,
+          limit,
+          totalPages: 0,
+        },
+      };
+    }
+
     const where: any[] = [];
 
-    const baseWhere = role ? { userType: role } : {};
+    const baseWhere = { userType: role ?? Not(UserRole.SUPER_ADMIN) };
 
     if (searchTerm) {
       where.push(
@@ -60,8 +72,12 @@ export class UsersService {
   // ─── Admin: Dropdown list (id + username only) ────────────────────────────
 
   async getDropdownUsers(role?: UserRole) {
+    if (role === UserRole.SUPER_ADMIN) {
+      return [];
+    }
+
     return this.userRepository.find({
-      where: role ? { userType: role } : {},
+      where: { userType: role ?? Not(UserRole.SUPER_ADMIN) },
       select: ['id', 'username'],
       order: { username: 'ASC' },
     });
@@ -200,7 +216,9 @@ export class UsersService {
   }
 
   getAllUsers(): Promise<User[]> {
-    return this.userRepository.find();
+    return this.userRepository.find({
+      where: { userType: Not(UserRole.SUPER_ADMIN) },
+    });
   }
 
   async getUserById(id: number) {
