@@ -1,35 +1,68 @@
-import { Controller, Get, Post, Body, Param, Patch, Delete, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { FinancialTransactionsService } from '../services/financial-transactions.service';
+import { CreateFinancialTransactionDto } from '../dto/create-financial-transaction.dto';
+import { UpdateFinancialTransactionDto } from '../dto/update-financial-transaction.dto';
+import { FinancialTransactionType } from '../../utils/enums';
+import { AuthRoleGuard } from '../../users/guards/auth-role.guard';
+import { ResponseMessage } from '../../utils/decorators/response-message.decorator';
 
 @Controller('financial/transactions')
 export class FinancialTransactionsController {
     constructor(private readonly transactionsService: FinancialTransactionsService) { }
 
-    // TODO: implement
     @Get()
-    findAll(@Query('page') page?: string, @Query('limit') limit?: string) {
-        console.log('endpoint hit: GET /financial/transactions');
-        return { message: 'Financial transactions list placeholder', page, limit };
+    @UseGuards(AuthRoleGuard)
+    @ResponseMessage('common.transactions.listRetrieved')
+    findAll(
+        @Query('page') page = '1',
+        @Query('limit') limit = '10',
+        @Query('categoryId') categoryId?: string,
+        @Query('type') type?: FinancialTransactionType,
+        @Query('startDate') startDate?: string,
+        @Query('endDate') endDate?: string,
+        @Query('searchTerm') searchTerm?: string,
+    ) {
+        const parsedPage = Math.max(1, parseInt(page, 10) || 1);
+        const parsedLimit = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
+        const parsedCategoryId = categoryId ? parseInt(categoryId, 10) || undefined : undefined;
+
+        return this.transactionsService.getPaginatedTransactions(
+            parsedPage,
+            parsedLimit,
+            parsedCategoryId,
+            type,
+            startDate,
+            endDate,
+            searchTerm?.trim(),
+        );
     }
 
-    // TODO: implement
+    @Get(':id')
+    @UseGuards(AuthRoleGuard)
+    @ResponseMessage('common.transactions.retrieved')
+    findOne(@Param('id', ParseIntPipe) id: number) {
+        return this.transactionsService.getTransactionById(id);
+    }
+
     @Post()
-    create(@Body() body: any) {
-        console.log('endpoint hit: POST /financial/transactions');
-        return { message: 'Financial transaction created placeholder', body };
+    @UseGuards(AuthRoleGuard)
+    @ResponseMessage('common.transactions.created')
+    create(@Body() dto: CreateFinancialTransactionDto) {
+        return this.transactionsService.createTransaction(dto);
     }
 
-    // TODO: implement
     @Patch(':id')
-    update(@Param('id') id: string, @Body() body: any) {
-        console.log(`endpoint hit: PATCH /financial/transactions/${id}`);
-        return { message: 'Financial transaction updated placeholder', id, body };
+    @UseGuards(AuthRoleGuard)
+    @ResponseMessage('common.transactions.updated')
+    update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateFinancialTransactionDto) {
+        return this.transactionsService.updateTransaction(id, dto);
     }
 
-    // TODO: implement
     @Delete(':id')
-    remove(@Param('id') id: string) {
-        console.log(`endpoint hit: DELETE /financial/transactions/${id}`);
-        return { message: 'Financial transaction deleted placeholder', id };
+    @UseGuards(AuthRoleGuard)
+    @ResponseMessage('common.transactions.deleted')
+    remove(@Param('id', ParseIntPipe) id: number) {
+        return this.transactionsService.deleteTransaction(id);
     }
 }
+

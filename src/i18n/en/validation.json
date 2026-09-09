@@ -12,6 +12,8 @@
   "isPhoneNumber": "Phone number must be valid",
   "isArray": "This field must be an array",
   "isJWT": "Refresh token must be a valid JWT",
+  "isDateString": "This field must be a valid ISO date string",
+  "min": "This field must be greater than or equal to {constraints.0}",
   "arrayMinSize": "At least one item is required",
   "nameEnRequired": "English name is required",
   "nameArRequired": "Arabic name is required",

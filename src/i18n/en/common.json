@@ -63,6 +63,7 @@
     "notFound": "User not found",
     "alreadyExists": "User already exists",
     "invalidCredentials": "Invalid email or password",
+    "inactiveAccount": "Your account is inactive. Please contact support.",
     "noProfileImage": "No profile image to remove"
   },
   "admins": {
@@ -97,6 +98,24 @@
     "accessDenied": "Access denied",
     "noRoles": "Access denied, no roles defined for this route",
     "userNoLongerExists": "User no longer exists",
-    "invalidRefreshToken": "Invalid or expired refresh token"
+    "invalidRefreshToken": "Invalid or expired refresh token",
+    "inactiveAccount": "Your account is inactive. Please contact support.",
+    "tokenRevoked": "Session has been revoked. Please log in again.",
+    "otpSentIfExists": "If this email is registered, an OTP has been sent.",
+    "otpValid": "OTP verified successfully.",
+    "otpExpired": "The OTP has expired. Please request a new one.",
+    "tooManyAttempts": "Too many failed attempts. Please request a new OTP.",
+    "invalidOtp": "Invalid OTP. Please try again.",
+    "passwordResetSuccess": "Password has been reset successfully.",
+    "invalidOrExpiredResetToken": "The reset token is invalid or has expired."
+  },
+  "transactions": {
+    "created": "Transaction created successfully",
+    "updated": "Transaction updated successfully",
+    "deleted": "Transaction deleted successfully",
+    "retrieved": "Transaction retrieved successfully",
+    "listRetrieved": "Transactions retrieved successfully",
+    "notFound": "Transaction not found"
   }
 }
+
