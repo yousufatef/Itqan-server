@@ -9,6 +9,7 @@ import * as bcrypt from 'bcryptjs';
 import { UserRole } from '../utils/enums';
 import { join } from 'node:path';
 import { unlinkSync, existsSync } from 'node:fs';
+import { UpdateProfileDto } from './dto/UpdateProfileDto';
 
 @Injectable()
 export class UsersService {
@@ -159,6 +160,25 @@ export class UsersService {
 
   // ─── Existing helpers ─────────────────────────────────────────────────────
 
+  async updateProfile(userId: number, updateData: UpdateProfileDto) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new BadRequestException('common.users.notFound');
+    }
+
+    if (updateData.email && updateData.email !== user.email) {
+      const existing = await this.userRepository.findOne({ where: { email: updateData.email } });
+      if (existing && existing.id !== userId) {
+        throw new BadRequestException('common.users.alreadyExists');
+      }
+      user.email = updateData.email;
+    }
+
+    if (updateData.username !== undefined) user.username = updateData.username;
+    if (updateData.phoneNumber !== undefined) user.phoneNumber = updateData.phoneNumber;
+
+    return this.userRepository.save(user);
+  }
   async update(id: number, updateData: { username?: string; password?: string }) {
     const user = await this.userRepository.findOne({ where: { id } });
     if (!user) {

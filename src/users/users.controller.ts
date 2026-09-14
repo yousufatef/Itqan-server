@@ -27,6 +27,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import type { JwtPayloadType } from '../utils/types';
 import type { Response } from 'express';
 import { ResponseMessage } from '../utils/decorators/response-message.decorator';
+import { UpdateProfileDto } from './dto/UpdateProfileDto';
 
 @Controller('users')
 export class UsersController {
@@ -144,6 +145,13 @@ export class UsersController {
   @ResponseMessage('common.users.retrieved')
   getCurrentUser(@CurrentUser() payload: JwtPayloadType) {
     return this.usersService.getCurrentUser(payload.id);
+  }
+
+  @Patch('profile')
+  @UseGuards(AuthGuard)
+  @ResponseMessage('common.users.updated')
+  updateCurrentUser(@CurrentUser() payload: JwtPayloadType, @Body() body: UpdateProfileDto) {
+    return this.usersService.updateProfile(payload.id, body);
   }
 
   // ─── Generic CRUD (kept for backwards compatibility) ─────────────────────
