@@ -10,6 +10,14 @@ export enum AttendanceStatus {
     ABSENT = 'absent',
 }
 
+export enum EvaluationGrade {
+    EXCELLENT = 'excellent',
+    VERY_GOOD = 'very_good',
+    GOOD = 'good',
+    ACCEPTABLE = 'acceptable',
+    WEAK = 'weak',
+}
+
 export enum FinancialTransactionType {
     INCOME = 'income',
     EXPENSE = 'expense',

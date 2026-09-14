@@ -19,8 +19,8 @@ export class Circle {
     @JoinColumn({ name: 'teacher_id' })
     teacher!: Teacher;
 
-    @Column({ type: 'varchar', nullable: true })
-    days!: string;
+    @Column({ type: 'simple-json', nullable: true })
+    days!: string[];
 
     @Column({ type: 'time', nullable: true })
     start_time!: string;

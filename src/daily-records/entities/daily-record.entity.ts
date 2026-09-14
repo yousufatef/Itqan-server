@@ -2,7 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 import { Student } from '../../students/entities/student.entity';
 import { Circle } from '../../circles/entities/circle.entity';
 import { Teacher } from '../../teachers/entities/teacher.entity';
-import { AttendanceStatus } from '../../utils/enums';
+import { AttendanceStatus, EvaluationGrade } from '../../utils/enums';
 import { CURRENT_TIMESTAMP } from '../../utils/constants';
 
 @Entity({ name: 'daily_records' })
@@ -33,16 +33,16 @@ export class DailyRecord {
     teacher!: Teacher;
 
     @Column({ type: 'date' })
-    record_date!: Date;
+    record_date!: string;
 
     @Column({ type: 'enum', enum: AttendanceStatus })
     attendance_status!: AttendanceStatus;
 
-    @Column({ type: 'text', nullable: true })
-    evaluation!: string;
+    @Column({ type: 'enum', enum: EvaluationGrade, nullable: true })
+    evaluation!: EvaluationGrade | null;
 
     @Column({ type: 'text', nullable: true })
-    notes!: string;
+    notes!: string | null;
 
     @CreateDateColumn({ type: 'timestamp', default: () => CURRENT_TIMESTAMP })
     created_at!: Date;
