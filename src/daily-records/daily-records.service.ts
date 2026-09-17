@@ -160,15 +160,6 @@ export class DailyRecordsService {
             throw new BadRequestException('common.dailyRecords.alreadyExists');
         }
 
-        if (dto.attendanceStatus === AttendanceStatus.ABSENT) {
-            if (dto.evaluation !== undefined || dto.notes !== undefined) {
-                throw new BadRequestException({
-                    message: "evaluation/notes cannot be set when attendanceStatus is 'absent'",
-                    studentId: dto.studentId,
-                });
-            }
-        }
-
         const evaluation =
             dto.attendanceStatus === AttendanceStatus.ABSENT
                 ? null
@@ -224,11 +215,6 @@ export class DailyRecordsService {
         const newAttendance = dto.attendanceStatus ?? record.attendance_status;
 
         if (newAttendance === AttendanceStatus.ABSENT) {
-            if (dto.evaluation !== undefined || dto.notes !== undefined) {
-                throw new BadRequestException({
-                    message: "evaluation/notes cannot be set when attendanceStatus is 'absent'",
-                });
-            }
             record.attendance_status = AttendanceStatus.ABSENT;
             record.evaluation = null;
             record.notes = null;
