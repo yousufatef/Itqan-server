@@ -35,6 +35,8 @@ const i18nPath = [
   join(__dirname, '..', 'src', 'i18n'),
 ].find((path) => existsSync(path)) ?? join(process.cwd(), 'src', 'i18n');
 
+const redisUrl = process.env.REDIS_URL;
+
 @Module({
   imports: [
     I18nModule.forRoot({
@@ -62,44 +64,39 @@ const i18nPath = [
       // Load .env first (DATABASE_URL remote), then env-specific file for other vars
       envFilePath: ['.env', process.env.NODE_ENV !== 'production' ? `.env.${process.env.NODE_ENV || 'development'}` : '.env'],
     }),
-    BullModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => {
-        const redisUrl = configService.get<string>('REDIS_URL');
-        if (redisUrl) {
-          const url = new URL(redisUrl);
-          return {
-            connection: {
-              host: url.hostname,
-              port: Number(url.port) || 6379,
-              username: url.username || undefined,
-              password: url.password || undefined,
-              tls: url.protocol === 'rediss:' ? { rejectUnauthorized: false } : undefined,
-              maxRetriesPerRequest: null,
+    // ── BullMQ + Bull Board (only when Redis is configured) ─────────────────
+    ...(redisUrl
+      ? [
+          BullModule.forRootAsync({
+            imports: [ConfigModule],
+            inject: [ConfigService],
+            useFactory: (configService: ConfigService) => {
+              const url = new URL(configService.get<string>('REDIS_URL')!);
+              return {
+                connection: {
+                  host: url.hostname,
+                  port: Number(url.port) || 6379,
+                  username: url.username || undefined,
+                  password: url.password || undefined,
+                  tls: url.protocol === 'rediss:' ? { rejectUnauthorized: false } : undefined,
+                  maxRetriesPerRequest: null,
+                },
+              };
             },
-          };
-        }
-        return {
-          connection: {
-            host: configService.get<string>('REDIS_HOST', 'localhost'),
-            port: configService.get<number>('REDIS_PORT', 6379),
-            password: configService.get<string>('REDIS_PASSWORD'),
-            maxRetriesPerRequest: null,
-          },
-        };
-      },
-    }),
-    BullBoardModule.forRoot({
-      route: '/admin/queues',
-      adapter: ExpressAdapter,
-      middleware: basicAuth({
-        users: {
-          [process.env.BULL_BOARD_USER || 'admin']: process.env.BULL_BOARD_PASSWORD || 'admin',
-        },
-        challenge: true,
-      }),
-    }),
+          }),
+          BullBoardModule.forRoot({
+            route: '/admin/queues',
+            adapter: ExpressAdapter,
+            middleware: basicAuth({
+              users: {
+                [process.env.BULL_BOARD_USER || 'admin']: process.env.BULL_BOARD_PASSWORD || 'admin',
+              },
+              challenge: true,
+            }),
+          }),
+        ]
+      : []),
+    // ─────────────────────────────────────────────────────────────────────────
     ThrottlerModule.forRoot({
       throttlers: [{
         ttl: 60000,

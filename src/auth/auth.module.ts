@@ -12,17 +12,24 @@ import { BullBoardModule } from '@bull-board/nestjs';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { OtpProcessor } from './otp.processor';
 
+// Only register the queue when a Redis connection is available
+const queueModules = process.env.REDIS_URL
+    ? [
+          BullModule.registerQueue({ name: 'otp-queue' }),
+          BullBoardModule.forFeature({
+              name: 'otp-queue',
+              adapter: BullMQAdapter,
+          }),
+      ]
+    : [];
+
 @Module({
     imports: [
         TypeOrmModule.forFeature([User, Otp]),
         JwtModule.register({}),
         MailModule,
         ConfigModule,
-        BullModule.registerQueue({ name: 'otp-queue' }),
-        BullBoardModule.forFeature({
-            name: 'otp-queue',
-            adapter: BullMQAdapter,
-        }),
+        ...queueModules,
     ],
     controllers: [AuthController],
     providers: [AuthProvider, OtpProcessor],

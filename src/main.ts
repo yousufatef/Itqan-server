@@ -1,32 +1,68 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { ExpressAdapter } from '@nestjs/platform-express';
+import express from 'express';
 import helmet from 'helmet';
 import { I18nValidationPipe } from 'nestjs-i18n';
+import type { Request, Response } from 'express';
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+const expressApp = express();
+let isInitialized = false;
+let bootstrapPromise: Promise<void> | null = null;
 
-  app.useGlobalPipes(new I18nValidationPipe({
-    whitelist: true,
-    forbidNonWhitelisted: true,
-    transform: true,
-  }));
+async function bootstrap(): Promise<void> {
+  if (isInitialized) return;
+  if (bootstrapPromise) return bootstrapPromise;
 
-  app.enableCors({
-    origin: [
-      'http://localhost:3000',
-      'http://localhost:5173',
-      'https://itqan-lovat.vercel.app',
-    ],
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    credentials: true,
-  });
+  bootstrapPromise = (async () => {
+    const app = await NestFactory.create(AppModule, new ExpressAdapter(expressApp));
 
-  // ✅ helmet AFTER cors
-  app.use(helmet({
-    crossOriginResourcePolicy: { policy: 'cross-origin' }, // ← critical
-  }));
+    app.useGlobalPipes(
+      new I18nValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
+    );
 
-  await app.listen(process.env.PORT ?? 3001);
+    app.enableCors({
+      origin: [
+        'http://localhost:3000',
+        'http://localhost:5173',
+        'https://itqan-lovat.vercel.app',
+      ],
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      credentials: true,
+    });
+
+    // ✅ helmet AFTER cors
+    app.use(
+      helmet({
+        crossOriginResourcePolicy: { policy: 'cross-origin' }, // ← critical
+      }),
+    );
+
+    if (process.env.VERCEL) {
+      // Serverless: initialise middleware without starting an HTTP server
+      await app.init();
+    } else {
+      // Local dev / traditional server
+      await app.listen(process.env.PORT ?? 3001);
+    }
+
+    isInitialized = true;
+  })();
+
+  return bootstrapPromise;
 }
-bootstrap();
+
+// ─── Vercel serverless handler ────────────────────────────────────────────────
+export default async function handler(req: Request, res: Response) {
+  await bootstrap();
+  expressApp(req, res);
+}
+
+// ─── Start HTTP server when NOT running on Vercel (local dev, Docker, etc.) ──
+if (!process.env.VERCEL) {
+  bootstrap().catch(console.error);
+}

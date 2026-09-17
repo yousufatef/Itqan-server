@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, Optional, UnauthorizedException } from '@nestjs/common';
 import { User } from '../users/entities/user.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -23,7 +23,7 @@ export class AuthProvider {
         @InjectRepository(Otp) private readonly otpRepository: Repository<Otp>,
         private readonly jwtService: JwtService,
         private readonly mailService: MailService,
-        @InjectQueue('otp-queue') private readonly otpQueue: Queue,
+    @Optional() @InjectQueue('otp-queue') private readonly otpQueue: Queue | null,
     ) { }
 
     private async generateAccessToken(user: User): Promise<string> {
@@ -143,20 +143,34 @@ export class AuthProvider {
             );
         });
 
-        try {
-            await this.otpQueue.add(
-                'send-otp-email',
-                { email: user.email, otp },
-                {
-                    attempts: 3,
-                    backoff: { type: 'exponential', delay: 2000 },
-                    removeOnComplete: true,
-                    removeOnFail: 50,
-                },
-            );
-        } catch (err) {
-            // Log but don't crash — OTP is securely created so user can retry or ask admin
-            console.error('Failed to queue OTP email job:', err);
+        if (this.otpQueue) {
+            try {
+                await this.otpQueue.add(
+                    'send-otp-email',
+                    { email: user.email, otp },
+                    {
+                        attempts: 3,
+                        backoff: { type: 'exponential', delay: 2000 },
+                        removeOnComplete: true,
+                        removeOnFail: 50,
+                    },
+                );
+            } catch (err) {
+                // Queue unavailable — fall back to direct send
+                console.error('Failed to queue OTP email job, sending directly:', err);
+                try {
+                    await this.mailService.sendOtpEmail(user.email, otp);
+                } catch (mailErr) {
+                    console.error('Direct OTP email send also failed:', mailErr);
+                }
+            }
+        } else {
+            // No Redis / queue — send email directly
+            try {
+                await this.mailService.sendOtpEmail(user.email, otp);
+            } catch (mailErr) {
+                console.error('Direct OTP email send failed:', mailErr);
+            }
         }
 
         return genericResponse;
