@@ -5,6 +5,8 @@ import { Circle } from './entities/circle.entity';
 import { CircleStudent } from './entities/circle-student.entity';
 import { Teacher } from '../teachers/entities/teacher.entity';
 import { Student } from '../students/entities/student.entity';
+import { User } from '../users/entities/user.entity';
+import { UserRole } from '../utils/enums';
 import { CreateCircleDto } from './dto/create-circle.dto';
 import { UpdateCircleDto } from './dto/update-circle.dto';
 
@@ -15,6 +17,7 @@ export class CirclesService {
         @InjectRepository(CircleStudent) private readonly circleStudentRepo: Repository<CircleStudent>,
         @InjectRepository(Teacher) private readonly teacherRepo: Repository<Teacher>,
         @InjectRepository(Student) private readonly studentRepo: Repository<Student>,
+        @InjectRepository(User) private readonly userRepo: Repository<User>,
     ) {}
 
     // ─── Normalisation ────────────────────────────────────────────────────────
@@ -43,16 +46,25 @@ export class CirclesService {
         }
     }
 
-    private async resolveTeacher(userId: number): Promise<Teacher> {
-        const teacher = await this.teacherRepo.findOne({
-            where: { user_id: userId },
-            relations: ['user'],
-        });
-        if (!teacher) {
+    private async resolveTeacher(teacherId: number): Promise<Teacher> {
+        const user = await this.userRepo.findOne({ where: { id: teacherId } });
+        if (!user || user.userType !== UserRole.TEACHER) {
             throw new BadRequestException(
-                `No teacher profile found for user id ${userId}. Make sure the user exists and has userType 'teacher'.`,
+                `Teacher with user id ${teacherId} not found or is not a teacher.`,
             );
         }
+
+        let teacher = await this.teacherRepo.findOne({
+            where: { user_id: user.id },
+            relations: ['user'],
+        });
+
+        if (!teacher) {
+            teacher = this.teacherRepo.create({ user_id: user.id });
+            teacher = await this.teacherRepo.save(teacher);
+            teacher.user = user;
+        }
+
         return teacher;
     }
 

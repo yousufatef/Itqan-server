@@ -21,4 +21,9 @@ export class CreateStudentDto {
     @IsOptional()
     @IsNumber()
     parent_id?: number;
+
+    @IsOptional()
+    @IsNumber()
+    parent?: number;
 }
+
