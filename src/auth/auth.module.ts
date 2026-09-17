@@ -7,6 +7,10 @@ import { Otp } from '../otp/entities/otp.entity';
 import { JwtModule } from '@nestjs/jwt';
 import { MailModule } from '../mail/mail.module';
 import { ConfigModule } from '@nestjs/config';
+import { BullModule } from '@nestjs/bullmq';
+import { BullBoardModule } from '@bull-board/nestjs';
+import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
+import { OtpProcessor } from './otp.processor';
 
 @Module({
     imports: [
@@ -14,9 +18,14 @@ import { ConfigModule } from '@nestjs/config';
         JwtModule.register({}),
         MailModule,
         ConfigModule,
+        BullModule.registerQueue({ name: 'otp-queue' }),
+        BullBoardModule.forFeature({
+            name: 'otp-queue',
+            adapter: BullMQAdapter,
+        }),
     ],
     controllers: [AuthController],
-    providers: [AuthProvider],
+    providers: [AuthProvider, OtpProcessor],
     exports: [AuthProvider],
 })
 export class AuthModule { }

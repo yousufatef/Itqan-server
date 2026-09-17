@@ -3,7 +3,11 @@ import { join } from 'path';
 import { existsSync } from 'fs';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { BullModule } from '@nestjs/bullmq';
+import { BullBoardModule } from '@bull-board/nestjs';
+import { ExpressAdapter } from '@bull-board/express';
+import basicAuth from 'express-basic-auth';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AcceptLanguageResolver, I18nModule, QueryResolver } from 'nestjs-i18n';
 import { AppController } from './app.controller';
@@ -56,6 +60,44 @@ const i18nPath = [
       // Load .env first (DATABASE_URL remote), then env-specific file for other vars
       envFilePath: ['.env', process.env.NODE_ENV !== 'production' ? `.env.${process.env.NODE_ENV || 'development'}` : '.env'],
     }),
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        const redisUrl = configService.get<string>('REDIS_URL');
+        if (redisUrl) {
+          const url = new URL(redisUrl);
+          return {
+            connection: {
+              host: url.hostname,
+              port: Number(url.port) || 6379,
+              username: url.username || undefined,
+              password: url.password || undefined,
+              tls: url.protocol === 'rediss:' ? { rejectUnauthorized: false } : undefined,
+              maxRetriesPerRequest: null,
+            },
+          };
+        }
+        return {
+          connection: {
+            host: configService.get<string>('REDIS_HOST', 'localhost'),
+            port: configService.get<number>('REDIS_PORT', 6379),
+            password: configService.get<string>('REDIS_PASSWORD'),
+            maxRetriesPerRequest: null,
+          },
+        };
+      },
+    }),
+    BullBoardModule.forRoot({
+      route: '/admin/queues',
+      adapter: ExpressAdapter,
+      middleware: basicAuth({
+        users: {
+          [process.env.BULL_BOARD_USER || 'admin']: process.env.BULL_BOARD_PASSWORD || 'admin',
+        },
+        challenge: true,
+      }),
+    }),
     ThrottlerModule.forRoot({
       throttlers: [{
         ttl: 60000,
@@ -95,4 +137,3 @@ export class AppModule implements NestModule {
       });
   }
 }
-

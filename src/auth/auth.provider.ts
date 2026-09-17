@@ -12,6 +12,9 @@ import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { MailService } from '../mail/mail.service';
 import { Otp } from '../otp/entities/otp.entity';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+
 @Injectable()
 export class AuthProvider {
 
@@ -20,6 +23,7 @@ export class AuthProvider {
         @InjectRepository(Otp) private readonly otpRepository: Repository<Otp>,
         private readonly jwtService: JwtService,
         private readonly mailService: MailService,
+        @InjectQueue('otp-queue') private readonly otpQueue: Queue,
     ) { }
 
     private async generateAccessToken(user: User): Promise<string> {
@@ -140,21 +144,24 @@ export class AuthProvider {
         });
 
         try {
-            await this.mailService.sendOtpEmail(user.email, otp);
+            await this.otpQueue.add(
+                'send-otp-email',
+                { email: user.email, otp },
+                {
+                    attempts: 3,
+                    backoff: { type: 'exponential', delay: 2000 },
+                    removeOnComplete: true,
+                    removeOnFail: 50,
+                },
+            );
         } catch (err) {
             // Log but don't crash — OTP is securely created so user can retry or ask admin
-            console.error('Failed to send OTP email:', err);
+            console.error('Failed to queue OTP email job:', err);
         }
 
         return genericResponse;
     }
 
-    /**
-     * Shared OTP lookup/validation used by both verifyOtp and resetPassword.
-     * Atomically increments `attempts` on a wrong OTP (via query builder .increment())
-     * to avoid the race where two concurrent wrong guesses both read the same
-     * stale `attempts` value and only count as one.
-     */
     private async validateOtp(email: string, otp: string): Promise<{ user: User; otpRecord: Otp }> {
         const user = await this.userRepository.findOne({ where: { email } });
         if (!user) throw new BadRequestException('common.auth.invalidOtp');
