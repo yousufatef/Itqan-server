@@ -31,6 +31,8 @@ const i18nPath = [
   join(process.cwd(), 'src', 'i18n'),
   join(__dirname, 'i18n'),
   join(__dirname, '..', 'i18n'),
+  join(__dirname, 'src', 'i18n'),
+  join(__dirname, '..', 'src', 'i18n'),
 ].find((path) => existsSync(path)) ?? join(process.cwd(), 'src', 'i18n');
 
 @Module({
@@ -39,7 +41,7 @@ const i18nPath = [
       fallbackLanguage: 'en',
       loaderOptions: {
         path: i18nPath,
-        watch: true,
+        watch: process.env.NODE_ENV !== 'production',
       },
       resolvers: [
         { use: QueryResolver, options: ['lang'] },
@@ -104,7 +106,10 @@ const i18nPath = [
         limit: 10,
       }],
     }),
-    TypeOrmModule.forRoot(dataSourceOptions),
+    TypeOrmModule.forRoot({
+      ...dataSourceOptions,
+      autoLoadEntities: true,
+    }),
   ],
   controllers: [AppController],
   providers: [
