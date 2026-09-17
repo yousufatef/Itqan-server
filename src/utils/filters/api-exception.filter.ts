@@ -44,9 +44,13 @@ export class ApiExceptionFilter implements ExceptionFilter {
       ? 'common.common.validationFailed'
       : this.getMessageKey(exception, statusCode);
 
+    const translatedMessage = this.looksLikeTranslationKey(messageKey)
+      ? this.translate(messageKey, lang)
+      : messageKey;
+
     const body: ApiResponse = {
       isSuccess: false,
-      message: this.translate(messageKey, lang),
+      message: translatedMessage,
       errors,
       statusCode,
       result: null,

@@ -116,6 +116,12 @@
     "retrieved": "Transaction retrieved successfully",
     "listRetrieved": "Transactions retrieved successfully",
     "notFound": "Transaction not found"
+  },
+  "dailyRecords": {
+    "alreadyExists": "Daily record already exists for this circle on this date",
+    "created": "Daily record created successfully",
+    "retrieved": "Daily record retrieved successfully",
+    "notFound": "Daily record not found"
   }
 }
 

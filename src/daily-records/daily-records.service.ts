@@ -117,6 +117,18 @@ export class DailyRecordsService {
 
         const circle = await this.assertCircleExists(circleId);
 
+        // Check if daily records already exist for this circle on this date
+        const existingCount = await this.recordRepo.count({
+            where: {
+                circle_id: circleId,
+                record_date: recordDate as any,
+            },
+        });
+
+        if (existingCount > 0) {
+            throw new BadRequestException('common.dailyRecords.alreadyExists');
+        }
+
         // Load the set of student IDs enrolled in this circle
         const circleStudents = await this.circleStudentRepo.find({
             where: { circle_id: circleId },
@@ -127,7 +139,15 @@ export class DailyRecordsService {
         const enrolledStudentIds = new Set(circleStudents.map((cs) => cs.student_id));
 
         // Validate each item before touching the DB
+        const seenStudentIds = new Set<number>();
         for (const item of items) {
+            if (seenStudentIds.has(item.studentId)) {
+                throw new BadRequestException(
+                    `Duplicate student record for student ID ${item.studentId} in request`,
+                );
+            }
+            seenStudentIds.add(item.studentId);
+
             if (!enrolledStudentIds.has(item.studentId)) {
                 throw new BadRequestException(
                     `Student ${item.studentId} is not enrolled in circle ${circleId}`,
@@ -144,17 +164,9 @@ export class DailyRecordsService {
             }
         }
 
-        // Run all upserts in a single transaction
+        // Run all creates in a single transaction
         await this.dataSource.transaction(async (manager) => {
             for (const item of items) {
-                const existing = await manager.findOne(DailyRecord, {
-                    where: {
-                        student_id: item.studentId,
-                        circle_id: circleId,
-                        record_date: recordDate as any,
-                    },
-                });
-
                 const evaluation =
                     item.attendanceStatus === AttendanceStatus.ABSENT
                         ? null
@@ -164,24 +176,16 @@ export class DailyRecordsService {
                         ? null
                         : (item.notes ?? null);
 
-                if (existing) {
-                    await manager.update(DailyRecord, existing.id, {
-                        attendance_status: item.attendanceStatus,
-                        evaluation,
-                        notes,
-                    });
-                } else {
-                    const record = manager.create(DailyRecord, {
-                        student_id: item.studentId,
-                        circle_id: circleId,
-                        teacher_id: circle.teacher_id,
-                        record_date: recordDate,
-                        attendance_status: item.attendanceStatus,
-                        evaluation,
-                        notes,
-                    });
-                    await manager.save(DailyRecord, record);
-                }
+                const record = manager.create(DailyRecord, {
+                    student_id: item.studentId,
+                    circle_id: circleId,
+                    teacher_id: circle.teacher_id,
+                    record_date: recordDate,
+                    attendance_status: item.attendanceStatus,
+                    evaluation,
+                    notes,
+                });
+                await manager.save(DailyRecord, record);
             }
         });
 
