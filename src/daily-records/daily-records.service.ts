@@ -6,6 +6,7 @@ import { Circle } from '../circles/entities/circle.entity';
 import { CircleStudent } from '../circles/entities/circle-student.entity';
 import { AttendanceStatus } from '../utils/enums';
 import { CreateDailyRecordItemDto } from './dto/create-daily-record-item.dto';
+import { UpdateDailyRecordDto } from './dto/update-daily-record.dto';
 
 @Injectable()
 export class DailyRecordsService {
@@ -59,6 +60,23 @@ export class DailyRecordsService {
         };
     }
 
+    private formatSingleRecord(record: DailyRecord, studentName?: string | null) {
+        return {
+            id: record.id,
+            recordId: record.id,
+            studentId: record.student_id,
+            studentName: studentName ?? record.student?.name ?? null,
+            circleId: record.circle_id,
+            teacherId: record.teacher_id,
+            recordDate: record.record_date,
+            attendanceStatus: record.attendance_status,
+            evaluation: record.evaluation ?? null,
+            notes: record.notes ?? null,
+            createdAt: record.created_at,
+            updatedAt: record.updated_at,
+        };
+    }
+
     // ─── GET /circles/:circleId/daily-records?date=YYYY-MM-DD ─────────────────
 
     async findByDate(circleId: number, date?: string) {
@@ -106,10 +124,10 @@ export class DailyRecordsService {
 
     // ─── POST /circles/:circleId/daily-records?date=YYYY-MM-DD ───────────────
 
-    async upsertBatch(
+    async createRecord(
         circleId: number,
         date: string | undefined,
-        items: CreateDailyRecordItemDto[],
+        dto: CreateDailyRecordItemDto,
     ) {
         // Resolve and validate date
         const recordDate = date ?? this.getTodayString();
@@ -117,79 +135,116 @@ export class DailyRecordsService {
 
         const circle = await this.assertCircleExists(circleId);
 
-        // Check if daily records already exist for this circle on this date
-        const existingCount = await this.recordRepo.count({
+        // Verify student is enrolled in circle
+        const circleStudent = await this.circleStudentRepo.findOne({
+            where: { circle_id: circleId, student_id: dto.studentId },
+            relations: ['student'],
+        });
+
+        if (!circleStudent) {
+            throw new BadRequestException(
+                `Student ${dto.studentId} is not enrolled in circle ${circleId}`,
+            );
+        }
+
+        // Check if daily record already exists for this student on this date
+        const existingRecord = await this.recordRepo.findOne({
             where: {
                 circle_id: circleId,
+                student_id: dto.studentId,
                 record_date: recordDate as any,
             },
         });
 
-        if (existingCount > 0) {
+        if (existingRecord) {
             throw new BadRequestException('common.dailyRecords.alreadyExists');
         }
 
-        // Load the set of student IDs enrolled in this circle
-        const circleStudents = await this.circleStudentRepo.find({
-            where: { circle_id: circleId },
-            relations: ['student'],
-            order: { created_at: 'ASC' },
-        });
-
-        const enrolledStudentIds = new Set(circleStudents.map((cs) => cs.student_id));
-
-        // Validate each item before touching the DB
-        const seenStudentIds = new Set<number>();
-        for (const item of items) {
-            if (seenStudentIds.has(item.studentId)) {
-                throw new BadRequestException(
-                    `Duplicate student record for student ID ${item.studentId} in request`,
-                );
-            }
-            seenStudentIds.add(item.studentId);
-
-            if (!enrolledStudentIds.has(item.studentId)) {
-                throw new BadRequestException(
-                    `Student ${item.studentId} is not enrolled in circle ${circleId}`,
-                );
-            }
-
-            if (item.attendanceStatus === AttendanceStatus.ABSENT) {
-                if (item.evaluation !== undefined || item.notes !== undefined) {
-                    throw new BadRequestException({
-                        message: "evaluation/notes cannot be set when attendanceStatus is 'absent'",
-                        studentId: item.studentId,
-                    });
-                }
+        if (dto.attendanceStatus === AttendanceStatus.ABSENT) {
+            if (dto.evaluation !== undefined || dto.notes !== undefined) {
+                throw new BadRequestException({
+                    message: "evaluation/notes cannot be set when attendanceStatus is 'absent'",
+                    studentId: dto.studentId,
+                });
             }
         }
 
-        // Run all creates in a single transaction
-        await this.dataSource.transaction(async (manager) => {
-            for (const item of items) {
-                const evaluation =
-                    item.attendanceStatus === AttendanceStatus.ABSENT
-                        ? null
-                        : (item.evaluation ?? null);
-                const notes =
-                    item.attendanceStatus === AttendanceStatus.ABSENT
-                        ? null
-                        : (item.notes ?? null);
+        const evaluation =
+            dto.attendanceStatus === AttendanceStatus.ABSENT
+                ? null
+                : (dto.evaluation ?? null);
+        const notes =
+            dto.attendanceStatus === AttendanceStatus.ABSENT
+                ? null
+                : (dto.notes ?? null);
 
-                const record = manager.create(DailyRecord, {
-                    student_id: item.studentId,
-                    circle_id: circleId,
-                    teacher_id: circle.teacher_id,
-                    record_date: recordDate,
-                    attendance_status: item.attendanceStatus,
-                    evaluation,
-                    notes,
-                });
-                await manager.save(DailyRecord, record);
-            }
+        const record = this.recordRepo.create({
+            student_id: dto.studentId,
+            circle_id: circleId,
+            teacher_id: circle.teacher_id,
+            record_date: recordDate,
+            attendance_status: dto.attendanceStatus,
+            evaluation,
+            notes,
         });
 
-        // Return the refreshed list in the same shape as GET
-        return this.findByDate(circleId, recordDate);
+        const saved = await this.recordRepo.save(record);
+        return this.formatSingleRecord(saved, circleStudent.student?.name);
+    }
+
+    // ─── PATCH /circles/:circleId/daily-records/:id ───────────────────────────
+
+    async updateRecord(
+        circleId: number,
+        id: number,
+        dto: UpdateDailyRecordDto,
+        date?: string,
+    ) {
+        await this.assertCircleExists(circleId);
+
+        if (date !== undefined) {
+            this.validateDateFormat(date);
+        }
+
+        const record = await this.recordRepo.findOne({
+            where: { id, circle_id: circleId },
+            relations: ['student'],
+        });
+
+        if (!record) {
+            throw new NotFoundException(`Daily record with id ${id} not found in circle ${circleId}`);
+        }
+
+        if (date !== undefined && record.record_date !== date) {
+            throw new BadRequestException(
+                `Record date (${record.record_date}) does not match requested date (${date})`,
+            );
+        }
+
+        const newAttendance = dto.attendanceStatus ?? record.attendance_status;
+
+        if (newAttendance === AttendanceStatus.ABSENT) {
+            if (dto.evaluation !== undefined || dto.notes !== undefined) {
+                throw new BadRequestException({
+                    message: "evaluation/notes cannot be set when attendanceStatus is 'absent'",
+                });
+            }
+            record.attendance_status = AttendanceStatus.ABSENT;
+            record.evaluation = null;
+            record.notes = null;
+        } else {
+            record.attendance_status = newAttendance;
+            if (dto.evaluation !== undefined) {
+                record.evaluation = dto.evaluation;
+            }
+            if (dto.notes !== undefined) {
+                record.notes = dto.notes;
+            }
+        }
+
+        const saved = await this.recordRepo.save(record);
+        return this.formatSingleRecord(saved, record.student?.name);
     }
 }
+
+

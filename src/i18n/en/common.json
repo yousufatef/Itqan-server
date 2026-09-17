@@ -120,6 +120,7 @@
   "dailyRecords": {
     "alreadyExists": "Daily record already exists for this circle on this date",
     "created": "Daily record created successfully",
+    "updated": "Daily record updated successfully",
     "retrieved": "Daily record retrieved successfully",
     "notFound": "Daily record not found"
   }
