@@ -1,11 +1,11 @@
 import {
-  ArgumentsHost,
   Catch,
   ExceptionFilter,
   HttpException,
   HttpStatus,
   Injectable,
 } from '@nestjs/common';
+import type { ArgumentsHost } from '@nestjs/common';
 import {
   I18nContext,
   I18nService,
@@ -13,6 +13,8 @@ import {
 } from 'nestjs-i18n';
 import type { ValidationError } from 'class-validator';
 import type { ApiResponse } from '../interfaces/api-response.interface';
+import { SentryExceptionCaptured } from '@sentry/nestjs';
+import * as Sentry from '@sentry/nestjs';
 
 type ValidationApiError = {
   field: string;
@@ -24,6 +26,7 @@ type ValidationApiError = {
 export class ApiExceptionFilter implements ExceptionFilter {
   constructor(private readonly i18n: I18nService) { }
 
+  @SentryExceptionCaptured()
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse();
@@ -34,6 +37,10 @@ export class ApiExceptionFilter implements ExceptionFilter {
       exception instanceof HttpException
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
+
+    if (statusCode >= 500) {
+      Sentry.logger.error('Request failed with a server error', { statusCode });
+    }
 
     const isValidationException = exception instanceof I18nValidationException;
     const errors = isValidationException
